@@ -1,7 +1,6 @@
 package gfile
 
 import (
-	"encoding/json"
 	"io/ioutil"
 	"log"
 	"os"
@@ -162,13 +161,15 @@ var queryType = graphql.NewObject(graphql.ObjectConfig{
 })
 
 // Run query
-func Run(query string) {
+func Run(query string) (interface{}, []error) {
 	schema, err := graphql.NewSchema(graphql.SchemaConfig{
 		Query: queryType,
 	})
+
+	errors := []error{}
+
 	if err != nil {
-		//log.Fatal(err)
-		panic(err)
+		return nil, errors
 	}
 
 	result := graphql.Do(graphql.Params{
@@ -176,18 +177,12 @@ func Run(query string) {
 		Schema:        schema,
 	})
 
-	if len(result.Errors) > 0 {
-		for _, e1 := range result.Errors {
-			println(e1.Error())
+	if result.HasErrors() {
+		for _, var1 := range result.Errors {
+			errors = append(errors, var1.OriginalError())
 		}
+		return nil, errors
 	}
 
-	b, e := json.Marshal(result)
-	if e != nil {
-		println(e.Error())
-		panic(e)
-	}
-
-	println(string(b))
-
+	return result.Data, errors
 }
