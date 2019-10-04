@@ -2,6 +2,7 @@ package gfile_test
 
 import (
 	"fmt"
+	"io/ioutil"
 	"testing"
 
 	"github.com/trains629/gfile"
@@ -9,6 +10,10 @@ import (
 
 func TestGraphql(t *testing.T) {
 	const dir = "F://"
+	flist, err := ioutil.ReadDir(dir)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	query := `
 	  query {
 		  readDir(path:"%s") {
@@ -24,5 +29,7 @@ func TestGraphql(t *testing.T) {
 		t.Fatal(errors)
 	}
 
-	t.Log(data)
+	if len(flist) != len(data) {
+		t.Fatal("len error")
+	}
 }

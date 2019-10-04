@@ -5,13 +5,6 @@ graphql定义的结构:
 
 ```graphql
 
-type File {
-    name:String! # 文件名称,包含后缀
-    path:String! # 文件路径，默认从/开始
-    isDir:Boolean
-    size:Int
-}
-
 type Time {
 
 }
@@ -22,13 +15,13 @@ type FileInfo {
   Mode(): Int
   ModTime(): Time
   IsDir(): Boolean
+  path: String!
 }
 
 type Query {
   readDir(path:String!):[FileInfo]!
-  ls(path:String):[File]! # 返回指定目录下的文件列表
-  findFile(path:!String,exts:[String],current:Boolean):[File]! # 按后缀名查找文件，默认只查找当前目录
-  lsByFile(file:File!):[File]!
+  exists(path:String):Boolean!
+  findFile(path:!String,exts:[String],current:Boolean):[FileInfo]!
 }
 
 ```

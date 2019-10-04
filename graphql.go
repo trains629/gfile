@@ -2,42 +2,15 @@ package gfile
 
 import (
 	"io/ioutil"
-	"log"
 	"os"
 
 	"github.com/graphql-go/graphql"
 )
 
-var FileKindEnum = graphql.NewEnum(graphql.EnumConfig{
-	Name: "FileKind",
-	Values: graphql.EnumValueConfigMap{
-		"DIR": &graphql.EnumValueConfig{
-			Value:       1,
-			Description: "dir",
-		},
-		"FILE": &graphql.EnumValueConfig{
-			Value:       2,
-			Description: "file",
-		},
-	},
-})
-
-type FileType struct {
-	Name  string `json:"name"`
-	Path  string `json:"path"`
-	isDir bool   `json:"isDir"`
-	Size  int64  `json:"size"`
+type TFileInfo struct {
+	File os.FileInfo
+	Path string
 }
-
-var fileType = graphql.NewObject(graphql.ObjectConfig{
-	Name: "File",
-	Fields: graphql.Fields{
-		"name":  &graphql.Field{Type: graphql.NewNonNull(graphql.String)},
-		"path":  &graphql.Field{Type: graphql.NewNonNull(graphql.String)},
-		"isDir": &graphql.Field{Type: graphql.Boolean},
-		"size":  &graphql.Field{Type: graphql.Int},
-	},
-})
 
 var FileInfoType = graphql.NewObject(graphql.ObjectConfig{
 	Name: "FileInfo",
@@ -45,8 +18,8 @@ var FileInfoType = graphql.NewObject(graphql.ObjectConfig{
 		"name": &graphql.Field{
 			Type: graphql.NewNonNull(graphql.String),
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-				if value, ok := p.Source.(os.FileInfo); ok {
-					return value.Name(), nil
+				if value, ok := p.Source.(TFileInfo); ok {
+					return value.File.Name(), nil
 				}
 				return "", nil
 			},
@@ -55,8 +28,8 @@ var FileInfoType = graphql.NewObject(graphql.ObjectConfig{
 		"isDir": &graphql.Field{
 			Type: graphql.NewNonNull(graphql.Boolean),
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-				if value, ok := p.Source.(os.FileInfo); ok {
-					return value.IsDir(), nil
+				if value, ok := p.Source.(TFileInfo); ok {
+					return value.File.IsDir(), nil
 				}
 				return false, nil
 			},
@@ -65,8 +38,8 @@ var FileInfoType = graphql.NewObject(graphql.ObjectConfig{
 		"size": &graphql.Field{
 			Type: graphql.Int,
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-				if value, ok := p.Source.(os.FileInfo); ok {
-					return value.Size(), nil
+				if value, ok := p.Source.(TFileInfo); ok {
+					return value.File.Size(), nil
 				}
 				return 0, nil
 			},
@@ -77,37 +50,8 @@ var FileInfoType = graphql.NewObject(graphql.ObjectConfig{
 var queryType = graphql.NewObject(graphql.ObjectConfig{
 	Name: "Query",
 	Fields: graphql.Fields{
-		"ls": &graphql.Field{
-			Type: graphql.NewList(fileType),
-			Args: graphql.FieldConfigArgument{
-				"path": &graphql.ArgumentConfig{
-					Type: graphql.String,
-				},
-			},
-			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-				path, err := p.Args["path"].(string)
-				log.Println(p.Source)
-				if err {
-					path = ""
-				}
-				ll3, count := ReadDir(path)
-				log.Println(count)
-				if count <= 0 {
-					return []interface{}{}, nil
-				}
-
-				return func() (interface{}, error) {
-					var ll2 []FileType
-					log.Println(count)
-					for index := 0; index < count; index++ {
-						ll2 = append(ll2, <-ll3)
-					}
-					return ll2, nil
-				}, nil
-			},
-		},
 		"findFile": &graphql.Field{
-			Type: graphql.NewList(fileType),
+			Type: graphql.NewList(FileInfoType),
 			Args: graphql.FieldConfigArgument{
 				"path": &graphql.ArgumentConfig{
 					Type: graphql.NewNonNull(graphql.String),
@@ -131,7 +75,7 @@ var queryType = graphql.NewObject(graphql.ObjectConfig{
 				ls, err := ioutil.ReadDir(path)
 
 				if err != nil {
-					return make([]os.FileInfo, 0), nil
+					return make([]TFileInfo, 0), nil
 				}
 
 				return ls, nil
@@ -152,9 +96,28 @@ var queryType = graphql.NewObject(graphql.ObjectConfig{
 				}
 
 				if ls, err := ioutil.ReadDir(path); err == nil {
-					return ls, nil
+					ls2 := make([]TFileInfo, len(ls))
+					for _, var1 := range ls {
+						ls2 = append(ls2, TFileInfo{
+							File: var1, Path: path,
+						})
+					}
+					return ls2, nil
 				}
-				return make([]os.FileInfo, 0), nil
+				return make([]TFileInfo, 0), nil
+			},
+		},
+		"exists": &graphql.Field{
+			Type: graphql.NewNonNull(graphql.Boolean),
+			Args: graphql.FieldConfigArgument{
+				"path": &graphql.ArgumentConfig{
+					Type: graphql.String,
+				},
+			},
+
+			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				path, _ := p.Args["path"].(string)
+				return Exists(path), nil
 			},
 		},
 	},
