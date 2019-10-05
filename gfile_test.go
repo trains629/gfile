@@ -9,7 +9,7 @@ import (
 )
 
 func TestGraphql(t *testing.T) {
-	const dir = "F://"
+	const dir = "./"
 	flist, err := ioutil.ReadDir(dir)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -23,7 +23,7 @@ func TestGraphql(t *testing.T) {
 	  }
 	
 	`
-	data, errors := gfile.Run(fmt.Sprintf(query, dir))
+	data, errors := gfile.Do(fmt.Sprintf(query, dir))
 
 	if len(errors) > 0 {
 		t.Fatal(errors)

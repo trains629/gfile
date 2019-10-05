@@ -2,15 +2,9 @@ package gfile
 
 import (
 	"io/ioutil"
-	"os"
 
 	"github.com/graphql-go/graphql"
 )
-
-type TFileInfo struct {
-	File os.FileInfo
-	Path string
-}
 
 var FileInfoType = graphql.NewObject(graphql.ObjectConfig{
 	Name: "FileInfo",
@@ -18,8 +12,8 @@ var FileInfoType = graphql.NewObject(graphql.ObjectConfig{
 		"name": &graphql.Field{
 			Type: graphql.NewNonNull(graphql.String),
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-				if value, ok := p.Source.(TFileInfo); ok {
-					return value.File.Name(), nil
+				if value, ok := p.Source.(*TFileInfo); ok {
+					return value.Name(), nil
 				}
 				return "", nil
 			},
@@ -28,8 +22,8 @@ var FileInfoType = graphql.NewObject(graphql.ObjectConfig{
 		"isDir": &graphql.Field{
 			Type: graphql.NewNonNull(graphql.Boolean),
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-				if value, ok := p.Source.(TFileInfo); ok {
-					return value.File.IsDir(), nil
+				if value, ok := p.Source.(*TFileInfo); ok {
+					return value.IsDir(), nil
 				}
 				return false, nil
 			},
@@ -38,11 +32,15 @@ var FileInfoType = graphql.NewObject(graphql.ObjectConfig{
 		"size": &graphql.Field{
 			Type: graphql.Int,
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-				if value, ok := p.Source.(TFileInfo); ok {
-					return value.File.Size(), nil
+				if value, ok := p.Source.(*TFileInfo); ok {
+					return value.Size(), nil
 				}
 				return 0, nil
 			},
+		},
+
+		"path": &graphql.Field{
+			Type: graphql.String,
 		},
 	},
 })
@@ -75,7 +73,7 @@ var queryType = graphql.NewObject(graphql.ObjectConfig{
 				ls, err := ioutil.ReadDir(path)
 
 				if err != nil {
-					return make([]TFileInfo, 0), nil
+					return make([]*TFileInfo, 0), nil
 				}
 
 				return ls, nil
@@ -90,21 +88,21 @@ var queryType = graphql.NewObject(graphql.ObjectConfig{
 			},
 
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-				path, e1 := p.Args["path"].(string)
-				if !e1 {
-					path = ".\\"
+				path, ok := p.Args["path"].(string)
+				if !ok {
+					return make([]*TFileInfo, 0), nil
 				}
-
-				if ls, err := ioutil.ReadDir(path); err == nil {
-					ls2 := make([]TFileInfo, len(ls))
-					for _, var1 := range ls {
-						ls2 = append(ls2, TFileInfo{
-							File: var1, Path: path,
-						})
+				ls, err := ioutil.ReadDir(path)
+				if err != nil {
+					return make([]*TFileInfo, 0), nil
+				}
+				ls2 := make([]*TFileInfo, len(ls))
+				for ii, var1 := range ls {
+					ls2[ii] = &TFileInfo{
+						File: var1, Path: path,
 					}
-					return ls2, nil
 				}
-				return make([]TFileInfo, 0), nil
+				return ls2, nil
 			},
 		},
 		"exists": &graphql.Field{
@@ -124,7 +122,7 @@ var queryType = graphql.NewObject(graphql.ObjectConfig{
 })
 
 // Run query
-func Run(query string) (interface{}, []error) {
+func Do(query string) (interface{}, []error) {
 	schema, err := graphql.NewSchema(graphql.SchemaConfig{
 		Query: queryType,
 	})

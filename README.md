@@ -28,23 +28,6 @@ type Query {
 
 演示范例:
 
-```go
-package main
-
-import (
-	"github.com/trains629/gfile"
-)
-
-func main() {
-	query := `
-	  query {
-		  readDir(path:"F:\\") {
-			  name
-			  isDir
-		  }
-	  }
-	
-	`
-	gfile.Run(query)
-}
+```bash
+go run ./example/
 ```

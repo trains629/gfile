@@ -1,38 +1,41 @@
 package gfile
 
 import (
-	"io/ioutil"
 	"os"
+	"time"
 )
+
+type TFileInfo struct {
+	File os.FileInfo
+	Path string `json:path`
+}
+
+func (f TFileInfo) Name() string {
+	return f.File.Name()
+}
+
+func (f TFileInfo) Size() int64 {
+	return f.File.Size()
+}
+
+func (f TFileInfo) Mode() os.FileMode {
+	return f.File.Mode()
+}
+
+func (f TFileInfo) ModTime() time.Time {
+	return f.File.ModTime()
+}
+
+func (f TFileInfo) IsDir() bool {
+	return f.File.IsDir()
+}
+
+func (f TFileInfo) Sys() interface{} {
+	return f.File.Sys()
+}
 
 // Exists func
 func Exists(path string) bool {
 	_, err := os.Stat(path)
 	return err == nil
-}
-
-func ReadDir(path string) (chan FileType, int) {
-	if !Exists(path) {
-		return nil, 0
-	}
-	ll, err2 := ioutil.ReadDir(path)
-
-	if err2 != nil {
-		return nil, 0
-	}
-	ch := make(chan FileType, len(ll))
-
-	for _, var1 := range ll {
-		go func(var1 os.FileInfo) {
-			ch <- FileType{
-				Name:  var1.Name(),
-				Path:  path,
-				isDir: var1.IsDir(),
-				Size:  var1.Size(),
-			}
-		}(var1)
-	}
-
-	return ch, len(ll)
-
 }
